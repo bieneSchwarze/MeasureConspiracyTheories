@@ -10,18 +10,18 @@ pl <- read_dta("pl.dta")
 pg <- read_dta("pgen.dta")
 pathl <- read_dta("ppathl.dta")
 instr <- read_dta("instrumentation.dta")
-hbrutt <- read_dta("hbrutt.dta") # until here stored in _ws_20240719.RDdata 
-setwd("F:\\VerschwDaten\\Data") 
+hbrutt <- read_dta("hbrutt.dta") 
 hl <- read_dta("hl.dta")
-regionl <- read_dta("regionl_2021.dta")
-popDens <- read.csv2("popDens.txt", sep="\t", header=FALSE)
+setwd("D:\\VerschwDaten\\Data") 
+regionl <- read_dta("regionl_2021.dta") # data set contains sensitive spatial data (not part of std. SUF v38)  
+popDens <- read.csv2("popDens.txt", sep="\t", header=FALSE) # taken from data base of federal statistical office
 
 # ------------------------------------------------------------------------------
 # EXTRACT VARIABLES
 # ------------------------------------------------------------------------------
 # From pathl
 # ----------
-pathr <- pathl[pathl$syear %in% "2021", c("pid", "hid", "sex", "gebjahr", "gebmonat")] # check why we have so many missings in gebm / gebj
+pathr <- pathl[pathl$syear %in% "2021", c("pid", "hid", "sex", "gebjahr", "gebmonat")]  
 hlr <- hl[hl$syear %in% "2021",]
 table(pathr$hid %in% hlr$hid)
 pathr <- pathr[pathr$hid %in% hlr$hid,]
@@ -30,6 +30,7 @@ pathr <- pathr[pathr$hid %in% hlr$hid,]
 # ----------
 # mode: 1 CAPI, 2 CAWI, 3 CATI, 4 PAPI, 5 CAPIbyPhone, 6 CASI
 instrr <- instr[instr$syear %in% 2021 & instr$status %in% 1, c("pid", "hid", "mode", "end")]
+instrr <- instrr[!duplicated(instrr$pid),] # take last entry
 table(instrr$pid %in% pathr$pid)
 DAT <- merge(instrr, pathr, by="pid", all.x=TRUE)
 DAT <- DAT[,!(colnames(DAT) %in% "hid.y")]
@@ -126,6 +127,12 @@ reg$PopClass[reg$PopNumber > quint[3] & reg$PopNumber <= quint[4]] <- 2
 reg$PopClass[reg$PopNumber > quint[4] & reg$PopNumber <= quint[5]] <- 3
 reg$PopClass[reg$PopNumber > quint[5]] <- 4
 DAT <- merge(DAT, reg[, c("hid", "Ost_west", "PopClass")], by="hid", all.x=TRUE)
+# --------
+# Add Weights
+# --------
+w_soep <- pathl[pathl$syear %in% 2021, c("pid", "phrf")]
+DAT <- merge(DAT,w_soep, by="pid", all.x=TRUE)
+colnames(DAT)[colnames(DAT) %in% "phrf"] <- "W_SOEP"
 
 # --------------------
 # check Miss Pattern
@@ -144,6 +151,7 @@ DAT <- DAT[!(DAT$psample %in% c(17,18,19,24)),] # take refugee samples out
 DAT <- DAT[!(is.na(DAT$A1) & is.na(DAT$A2) & is.na(DAT$A3) & is.na(DAT$A4) & is.na(DAT$A5)),]
 table(DAT$mode)
 DAT <- DAT[,!(colnames(DAT) %in% c("psample"))]
+gg_miss_upset(DAT)
 
 # -----------------------------------------------------------
 # Make Variable Values comparable to those of Civey Data
@@ -174,6 +182,7 @@ DAT$age[age >= 40 & age < 50] <- "40 - 49"
 DAT$age[age >= 50 & age < 65] <- "50 - 64"
 DAT$age[age > 65] <- "65+"
 DAT <- DAT[,!(colnames(DAT) %in% c("gebjahr", "gebmonat"))]
+table(DAT$age, exclude=NULL) # N=1518 missings because of missing birth month (N=1375) and birth year (N=804)
 # Occupational Position
 DAT$OccPossO <- DAT$OccPos
 DAT$OccPos <- NA
@@ -272,5 +281,6 @@ table(DAT$Rel2021, exclude=NULL)
 table(DAT$Rel, exclude=NULL)
 DAT <- DAT[,!(colnames(DAT) %in% c("Rel2021"))]
 
-
+# store data as dta file
+write_dta(DAT, "D:\\VerschwDaten\\Data\\soepConsData.dta")
 
