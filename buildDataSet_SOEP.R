@@ -1,3 +1,10 @@
+################################################################################
+# Extract Data Distributions for Benchmarking / Raking from SOEP Data Wave 2021
+# 25.06.2024
+# SZinn
+################################################################################
+
+
 library(haven)
 library(naniar)
 library(labelled)
