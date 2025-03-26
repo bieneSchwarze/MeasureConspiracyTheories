@@ -133,13 +133,18 @@ datAll$Empl5[empl %in% c("Arbeitnehmer", "Selbstständige")] <- "Erwerbstätig"
 datAll$Empl5[empl %in% c("Arbeitslose / Nichterwerbspersonen", "Rentner", "Studenten")] <- "Nicht Erwerbstätig"
 table(datAll$Empl5, exclude=NULL)
 
+# complete cases: answers for A2, A3, A4, A5
+cc <- which(!is.na(datAll$A2) & !is.na(datAll$A3) & !is.na(datAll$A4) & !is.na(datAll$A5))
+datAll$cc <- 0; datAll$cc[cc] <- 1
+table(datAll$cc) # N=1895 complete cases
+ 
 # ------------------------------
 # Transform to data set used in the post-stratification / raking procedure 
 # ------------------------------
 
 datLong <- datAll %>%
   pivot_longer(
-    cols = -ID,  # Alle Spalten außer "ID" ins long Format umwandeln
+    cols = -c(ID,cc),  # Alle Spalten außer "ID" ins long Format umwandeln
     names_to = c(".value", "Question"),  # Trennt Namen in Variablenname und Wellen-Nummer
     names_pattern = "([A-Za-z]+)(\\d+)"  # Muster zur Trennung: Buchstaben + Zahl
   )
