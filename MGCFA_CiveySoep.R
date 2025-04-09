@@ -299,12 +299,88 @@ fit_scalar_fullcase <- cfa(model,
                   ordered = c("A2", "A3", "A4", "A5"), 
                   missing = "listwise")
 
+# mean equivalence
+fit_mean_fullcase <- cfa(model, 
+                           data = conspiracy_data_fullcase,
+                           group = "survey",
+                           group.equal = c("loadings", "thresholds", "means"), 
+                           sampling.weights = "weight",
+                           estimator = "WLSMV", 
+                           ordered = c("A2", "A3", "A4", "A5"), 
+                           missing = "listwise")
+
+# residual equivalence
+fit_residual_fullcase <- cfa(model, 
+                           data = conspiracy_data_fullcase,
+                           group = "survey",
+                           group.equal = c("loadings", "thresholds",  "means", "residuals"), 
+                           sampling.weights = "weight",
+                           estimator = "WLSMV", 
+                           ordered = c("A2", "A3", "A4", "A5"), 
+                           missing = "listwise")
+
 # save fit indices
 fit_extract(list(configural_equivalence = fit_config_fullcase,
                  metric_equivalence = fit_metric_fullcase,
-                 scalar_equivalence = fit_scalar_fullcase)) %>%
+                 scalar_equivalence = fit_scalar_fullcase,
+                 mean_equivalence = fit_mean_fullcase,
+                 residual_equivalence = fit_residual_fullcase)) %>%
   write_csv("./output/fit_table_fullcase.csv")
 
+
+##########################################################################################
+# fullcase analysis without weights
+# configural equivalence
+fit_config_fullcase <- cfa(model, 
+                           data = conspiracy_data_fullcase,
+                           group = "survey",
+                           estimator = "WLSMV", 
+                           ordered = c("A2", "A3", "A4", "A5"), 
+                           missing = "listwise") 
+
+# metric equivalence
+fit_metric_fullcase <- cfa(model, 
+                           data = conspiracy_data_fullcase,
+                           group = "survey",
+                           group.equal = c("loadings"),
+                           estimator = "WLSMV", 
+                           ordered = c("A2", "A3", "A4", "A5"), 
+                           missing = "listwise")
+
+# scalar equivalence
+fit_scalar_fullcase <- cfa(model, 
+                           data = conspiracy_data_fullcase,
+                           group = "survey",
+                           group.equal = c("loadings", "thresholds"), 
+                           estimator = "WLSMV", 
+                           ordered = c("A2", "A3", "A4", "A5"), 
+                           missing = "listwise")
+
+# mean equivalence
+fit_mean_fullcase <- cfa(model, 
+                         data = conspiracy_data_fullcase,
+                         group = "survey",
+                         group.equal = c("loadings", "thresholds", "means"), 
+                         estimator = "WLSMV", 
+                         ordered = c("A2", "A3", "A4", "A5"), 
+                         missing = "listwise")
+
+# residual equivalence
+fit_residual_fullcase <- cfa(model, 
+                             data = conspiracy_data_fullcase,
+                             group = "survey",
+                             group.equal = c("loadings", "thresholds",  "means","residuals"), 
+                             estimator = "WLSMV", 
+                             ordered = c("A2", "A3", "A4", "A5"), 
+                             missing = "listwise")
+
+# save fit indices
+fit_extract(list(configural_equivalence = fit_config_fullcase,
+                 metric_equivalence = fit_metric_fullcase,
+                 scalar_equivalence = fit_scalar_fullcase,
+                 mean_equivalence = fit_mean_fullcase,
+                 residual_equivalence = fit_residual_fullcase)) %>%
+  write_csv("./output/fit_table_fullcase_unweighted.csv")
 
 ###########################################################################################
 # test for Equivalence between modes in SOEP
