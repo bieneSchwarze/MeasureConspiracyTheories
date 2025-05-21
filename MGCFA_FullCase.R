@@ -10,6 +10,7 @@ pacman::p_load(haven, tidyverse, lavaan, semTools, irr, psych)
 
 # read data
 rm(list=ls())
+setwd("//A0002017.iab.baintern.de/Benutzer/SchmitzR015/Eigene Dateien/Non_prob/Prog")
 
 NonPropData <- read_dta("Z:/Eigene Dateien/Non_prob/Data/NonPropData_CalWeighted_v09022025.dta")
 SoepConsData <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
@@ -21,15 +22,15 @@ NonPropData_DemogWeights <- read_dta("Z:/Eigene Dateien/Non_prob/Data/NonPropDat
 
 # function to extract indicators from list
 fit_extract <- function(list_models) {
-  coef <- c("chisq.scaled", "df.scaled", "pvalue.scaled",
-            "cfi.scaled", "rmsea.scaled")
+  coef <- c("chisq", "df", "pvalue",
+            "cfi", "rmsea")
   
   
   map(list_models, function(x) fitMeasures(x)[coef]) %>%
     reduce(rbind) %>% tibble::as_tibble() %>%
     mutate(model = names(list_models),
            across(where(is.numeric),~round(.,3))) %>%
-    select(model, everything())
+    dplyr::select(model, everything())
   
 }
 
@@ -58,12 +59,12 @@ SoepConsData <- SoepConsData %>%
 
 # adjust format of nonprob data
 NonPropData_wide <- NonPropData %>%
-  select(ID, Answer, Question)%>%
+  dplyr::select(ID, Answer, Question)%>%
   pivot_wider(names_from = Question, values_from = Answer, names_prefix = "A") %>%
   right_join(NonPropData_fullcase, by = "ID") %>%
-  rename(weight = "calweight",weight_trim = "calweight_trim") %>%
+  rename(weight = "calweight",weight_trim = "calweight_trim", weight_std = "calweight_std") %>%
   left_join(NonPropData_DemogWeights, by = "ID") %>%
-  rename(weight_demo = "calweight",weight_demo_trim = "calweight_trim") %>%
+  rename(weight_demo = "calweight",weight_demo_trim = "calweight_trim", weight_demo_std = "calweight_std") %>%
   mutate(survey = "civey",
          weight_modes = weight,
          mode = 7)
@@ -197,7 +198,7 @@ fit_extract(list(configural_equivalence = fit_config_fullcase,
                  metric_equivalence = fit_metric_fullcase_uw,
                  scalar_equivalence = fit_scalar_fullcase_uw,
                  mean_equivalence = fit_mean_fullcase_uw,
-                 residual_equivalence = fit_residual_fullcase_uw)) %>%
+                 residual_equivalenc  = fit_residual_fullcase_uw)) %>%
   write_csv("./output/fit_table_fullcase_unweighted.csv")
 
 
@@ -227,6 +228,24 @@ fit_scalar_fullcase_trim <- cfa(model,
                               sampling.weights = "weight_trim",
                               estimator = "WLSMV", 
                               ordered = c("A2", "A3", "A4", "A5"))
+
+# mean equivalence
+fit_mean_fullcase_trim <- cfa(model, 
+                            data = conspiracy_data_fullcase,
+                            group = "survey",
+                            group.equal = c("loadings", "thresholds", "means"), 
+                            estimator = "WLSMV", 
+                            sampling.weights = "weight_trim",
+                            ordered = c("A2", "A3", "A4", "A5"))
+
+# residual equivalence
+fit_residual_fullcase_trim <- cfa(model, 
+                                data = conspiracy_data_fullcase,
+                                group = "survey",
+                                group.equal = c("loadings", "thresholds",  "means", "residuals"), 
+                                estimator = "WLSMV", 
+                                sampling.weights = "weight_trim",
+                                ordered = c("A2", "A3", "A4", "A5"))
 
 # we still have scalar equivalence, but hit the treshold of 0.01 exactly
 # so we figure out, what causes that 
@@ -259,7 +278,8 @@ fit_partial_fullcase_trim <- cfa(model,
 fit_extract(list(configural_equivalence = fit_config_fullcase_trim,
                  metric_equivalence = fit_metric_fullcase_trim,
                  scalar_equivalence = fit_scalar_fullcase_trim,
-                 partial_equivalence = fit_partial_fullcase_trim)) %>%
+                 mean_equivalence = fit_mean_fullcase_trim,
+                 residual_equivalence = fit_residual_fullcase_trim)) %>%
   write_csv("./output/fit_table_fullcase_trimweight.csv")
 # ----------------------------------------------------------------------------
 # 3. with weights only adjusted to demographics
@@ -413,7 +433,7 @@ SoepConsData_t2 <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
 
 # scale is adjusted seperatly for  each question
 
-# function to transform prob data based on cumulative distribution cumulative distributions
+# function to transform prob data based on cumulative distribution
 transform_to_cumdist <- function(prob_values, nonprob_values){
   
   prob <- ecdf(prob_values)
