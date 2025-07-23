@@ -6,7 +6,7 @@
 # --------------------------------------------------------------------------------------
   
 # packages
-pacman::p_load(haven, tidyverse, lavaan, semTools, irr, psych)
+pacman::p_load(haven, tidyverse, lavaan, semTools, irr, psych, purrr, flextable, tibble, knitr, kableExtra)
 
 # read data
 rm(list=ls())
@@ -73,12 +73,20 @@ NonPropData_wide <- NonPropData %>%
 # merge both df
 conspiracy_data_fullcase <- bind_rows(SoepConsData[,c("A2", "A3", "A4", "A5", 
                                                       "survey", "weight", "weight_trim", 
-                                                      "weight_demo", "weight_demo_trim")],
+                                                      "weight_demo", "weight_demo_trim", "mode")],
                                       NonPropData_wide)
 
 # remove rows with no answer to  A2:A5
 conspiracy_data_fullcase <- conspiracy_data_fullcase[rowSums(conspiracy_data_fullcase[,1:4], na.rm = T) != 0, ]
 
+# number of cases and means of A2:A5
+table(conspiracy_data_fullcase$survey)
+table(conspiracy_data_fullcase$mode) # CAWI = mode 2
+
+
+round(colMeans(conspiracy_data_fullcase[conspiracy_data_fullcase$survey == "soep" , 1:4]),2)
+round(colMeans(conspiracy_data_fullcase[conspiracy_data_fullcase$survey == "civey", 1:4]),2)
+round(colMeans(conspiracy_data_fullcase[conspiracy_data_fullcase$mode == 2, 1:4]),2)
 # -------------------------------------------------------------------------------------
   
 # Test scale
@@ -144,16 +152,17 @@ fit_residual_fullcase <- cfa(model,
                              ordered = c("A2", "A3", "A4", "A5"))
 
 # save fit indices
-fit_extract(list(configural_equivalence = fit_config_fullcase,
-                 metric_equivalence = fit_metric_fullcase,
-                 scalar_equivalence = fit_scalar_fullcase,
-                 mean_equivalence = fit_mean_fullcase,
-                 residual_equivalence = fit_residual_fullcase)) %>%
-  write_csv("./output/fit_table_fullcase.csv")
+tab_fullcase <- fit_extract(list(configural = fit_config_fullcase,
+                 metric = fit_metric_fullcase,
+                 scalar = fit_scalar_fullcase,
+                 mean = fit_mean_fullcase,
+                 residual = fit_residual_fullcase)) %>%
+  mutate(condition = "Main model")
+  #write_csv("./output/fit_table_fullcase.csv")
 
 
 # sensitivity checks for weighting ------------------------------------------------------
-# 1. no weights 
+# 1. no weights (S1 in the paper)
 # configural equivalence
 fit_config_fullcase_uw <- cfa(model, 
                            data = conspiracy_data_fullcase,
@@ -194,12 +203,14 @@ fit_residual_fullcase_uw <- cfa(model,
                              ordered = c("A2", "A3", "A4", "A5"))
 
 # save fit indices
-fit_extract(list(configural_equivalence = fit_config_fullcase,
-                 metric_equivalence = fit_metric_fullcase_uw,
-                 scalar_equivalence = fit_scalar_fullcase_uw,
-                 mean_equivalence = fit_mean_fullcase_uw,
-                 residual_equivalenc  = fit_residual_fullcase_uw)) %>%
-  write_csv("./output/fit_table_fullcase_unweighted.csv")
+tab_uw<- fit_extract(list(configural = fit_config_fullcase_uw,
+                                 metric = fit_metric_fullcase_uw,
+                                 scalar = fit_scalar_fullcase_uw,
+                                 mean = fit_mean_fullcase_uw,
+                                 residual = fit_residual_fullcase_uw)) %>%
+  mutate(condition = "Unweighted")
+
+  #write_csv("./output/fit_table_fullcase_unweighted.csv")
 
 
 # ----------------------------------------------------------------------------
@@ -247,42 +258,18 @@ fit_residual_fullcase_trim <- cfa(model,
                                 sampling.weights = "weight_trim",
                                 ordered = c("A2", "A3", "A4", "A5"))
 
-# we still have scalar equivalence, but hit the treshold of 0.01 exactly
-# so we figure out, what causes that 
-
-# Lagrange Test to identify problematic contstraints
-lavTestScore(fit_scalar_fullcase_trim)
-
-parTable(fit_scalar_fullcase_trim)
-
-# there are issues with multiple thresholds in all of the items, 
-# especially in A2 and A4
-
-# we first try to archive partial equivalence by allowing for the tresholds of 4 
-# to be freely estimated, since we see issues ith 3 of the 4 tresholds for this question
-
-# fit partial model
-fit_partial_fullcase_trim <- cfa(model, 
-                                data = conspiracy_data_fullcase,
-                                group = "survey",
-                                group.equal = c("loadings", "thresholds"),
-                                group.partial = c("A4 | t1","A4 | t2",  "A4 | t3", "A4 | t4"),  
-                                sampling.weights = "weight_trim",
-                                estimator = "WLSMV", 
-                                ordered = c("A2", "A3", "A4", "A5"))
-
-
-# with free estimation of tresholds for A4 we archive partial equivalence                              
 
 # save fit indices
-fit_extract(list(configural_equivalence = fit_config_fullcase_trim,
-                 metric_equivalence = fit_metric_fullcase_trim,
-                 scalar_equivalence = fit_scalar_fullcase_trim,
-                 mean_equivalence = fit_mean_fullcase_trim,
-                 residual_equivalence = fit_residual_fullcase_trim)) %>%
-  write_csv("./output/fit_table_fullcase_trimweight.csv")
+tab_trim <- fit_extract(list(configural = fit_config_fullcase_trim,
+                          metric = fit_metric_fullcase_trim,
+                          scalar = fit_scalar_fullcase_trim,
+                          mean = fit_mean_fullcase_trim,
+                          residual = fit_residual_fullcase_trim)) %>%
+  mutate(condition = "Trimmed weights")
+  #write_csv("./output/fit_table_fullcase_trimweight.csv")
+
 # ----------------------------------------------------------------------------
-# 3. with weights only adjusted to demographics
+# 3. with weights only adjusted to demographics  (S2 in the paper)
 fit_config_fullcase_demo <- cfa(model, 
                                 data = conspiracy_data_fullcase,
                                 group = "survey",
@@ -327,16 +314,18 @@ fit_residual_fullcase_demo <- cfa(model,
                                   ordered = c("A2", "A3", "A4", "A5"))
 
 # save fit indices
-fit_extract(list(configural_equivalence = fit_config_fullcase_demo,
-                 metric_equivalence = fit_metric_fullcase_demo,
-                 scalar_equivalence = fit_scalar_fullcase_demo,
-                 mean_equivalence = fit_mean_fullcase_demo,
-                 residual_equivalence = fit_residual_fullcase_demo)) %>%
-  write_csv("./output/fit_table_fullcase_demoweight.csv")
+tab_demo<- fit_extract(list(configural = fit_config_fullcase_demo,
+                          metric = fit_metric_fullcase_demo,
+                          scalar = fit_scalar_fullcase_demo,
+                          mean = fit_mean_fullcase_demo,
+                          residual = fit_residual_fullcase_demo)) %>%
+  mutate(condition = "Demographic weights")
+
+  #write_csv("./output/fit_table_fullcase_demoweight.csv")
 
 
 # sensitivity checks for scaling ------------------------------------------------------
-# 1. Smaller middle category
+# 1. Smaller middle category (S3 in the paper)
 SoepConsData_t1 <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
 
 # transform scale of Soep Data from 0-10 to 1-5
@@ -419,16 +408,18 @@ fit_residual_t1 <- cfa(model,
                        ordered = c("A2", "A3", "A4", "A5"))
 
 # save fit indices
-fit_extract(list(configural_equivalence = fit_config_t1,
-                 metric_equivalence = fit_metric_t1,
-                 scalar_equivalence = fit_scalar_t1,
-                 mean_equivalence = fit_mean_t1,
-                 residual_equivalence = fit_residual_t1)) %>%
-  write_csv("./output/fit_table_fullcase_t1.csv")
+tab_t1 <- fit_extract(list(configural = fit_config_t1,
+                          metric = fit_metric_t1,
+                          scalar = fit_scalar_t1,
+                          mean = fit_mean_t1,
+                          residual = fit_residual_t1)) %>%
+  mutate(condition = "Middle category recoded")
+
+  #write_csv("./output/fit_table_fullcase_t1.csv")
 
 
 # -------------------------------------------------------------------------------------
-# 2.: transform scale by using cumulative distributions
+# 2.: transform scale by using cumulative distributions (S4 in the paper)
 SoepConsData_t2 <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
 
 # scale is adjusted seperatly for  each question
@@ -548,9 +539,33 @@ fit_residual_t2 <- cfa(model,
                        ordered = c("A2", "A3", "A4", "A5"))
 
 # save fit indices
-fit_extract(list(configural_equivalence = fit_config_t2,
-                 metric_equivalence = fit_metric_t2,
-                 scalar_equivalence = fit_scalar_t2,
-                 mean_equivalence = fit_mean_t2,
-                 residual_equivalence = fit_residual_t2)) %>%
-  write_csv("./output/fit_table_fullcase_t2.csv")
+tab_t2 <- fit_extract(list(configural = fit_config_t2,
+                           metric = fit_metric_t2,
+                           scalar = fit_scalar_t2,
+                           mean = fit_mean_t2,
+                           residual = fit_residual_t2)) %>%
+  mutate(condition = "Percentile-based transformation")
+
+  #write_csv("./output/fit_table_fullcase_t2.csv")
+
+
+
+# --------------------------------------------------------------------------------------------
+# collapse results
+fit_table <- bind_rows(tab_fullcase,
+                       tab_t1,
+                       tab_t2,
+                       tab_uw,
+                       tab_trim,
+                       tab_demo) %>%
+  relocate(condition, model)
+
+flextable(fit_table)
+
+# save
+write_csv(fit_table, "./output/fit_table_full.csv")
+
+# kable
+fit_table %>% 
+  kable(format = "html", caption = "Table 1: Model fit indices") %>%
+  kable_styling("striped", full_width = F)
