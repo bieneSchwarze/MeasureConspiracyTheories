@@ -16,7 +16,6 @@ NonPropData <- read_dta("Z:/Eigene Dateien/Non_prob/Data/NonPropData_CalWeighted
 SoepConsData <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
 
 soepConsData_selfMode <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData_selfMode.dta")
-soepConsData_interviewerMode <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData_interviewerMode.dta")
 NonPropData_fullcase <- read_dta("Z:/Eigene Dateien/Non_prob/Data/NonPropData_CompleteCases_CalWeighted_v26032025.dta")
 NonPropData_DemogWeights <- read_dta("Z:/Eigene Dateien/Non_prob/Data/NonPropData_CompleteCases_onlyDemog_CalWeighted_v30042025.dta")
 
@@ -49,12 +48,11 @@ SoepConsData <- SoepConsData %>%
                                    . %in% c(9,10) ~ 5)),
          survey = "soep") %>%
   left_join(soepConsData_selfMode[, c("pid", "W_SOEP_self")], by = "pid") %>%
-  left_join(soepConsData_interviewerMode[, c("pid", "W_SOEP_interview")], by = "pid") %>%
   rename(weight = W_SOEP) %>%
   mutate(weight_trim = weight,
          weight_demo = weight,
          weight_demo_trim = weight,
-         weight_modes = coalesce(W_SOEP_interview, W_SOEP_self))
+         weight_selfadmin = W_SOEP_self)
   
 
 # adjust format of nonprob data
@@ -66,14 +64,14 @@ NonPropData_wide <- NonPropData %>%
   left_join(NonPropData_DemogWeights, by = "ID") %>%
   rename(weight_demo = "calweight",weight_demo_trim = "calweight_trim", weight_demo_std = "calweight_std") %>%
   mutate(survey = "civey",
-         weight_modes = weight,
+         weight_selfadmin = weight,
          mode = 7)
 
 
 # merge both df
 conspiracy_data_fullcase <- bind_rows(SoepConsData[,c("A2", "A3", "A4", "A5", 
                                                       "survey", "weight", "weight_trim", 
-                                                      "weight_demo", "weight_demo_trim", "mode")],
+                                                      "weight_demo", "weight_demo_trim", "weight_selfadmin", "mode")],
                                       NonPropData_wide)
 
 # remove rows with no answer to  A2:A5
@@ -162,7 +160,61 @@ tab_fullcase <- fit_extract(list(configural = fit_config_fullcase,
 
 
 # sensitivity checks for weighting ------------------------------------------------------
-# 1. no weights (S1 in the paper)
+# 1. CAWI adjusted weights (S1 in the paper)
+# configural equivalence
+fit_config_fullcase_cw <- cfa(model, 
+                              data = conspiracy_data_fullcase[!is.na(conspiracy_data_fullcase$weight_selfadmin),],
+                              group = "survey",
+                              sampling.weights = "weight_selfadmin",
+                              estimator = "WLSMV", 
+                              ordered = c("A2", "A3", "A4", "A5")) 
+
+# metric equivalence
+fit_metric_fullcase_cw <- cfa(model, 
+                              data = conspiracy_data_fullcase[!is.na(conspiracy_data_fullcase$weight_selfadmin),],
+                              group = "survey",
+                              sampling.weights = "weight_selfadmin",
+                              group.equal = c("loadings"),
+                              estimator = "WLSMV", 
+                              ordered = c("A2", "A3", "A4", "A5"))
+
+# scalar equivalence
+fit_scalar_fullcase_cw <- cfa(model, 
+                              data = conspiracy_data_fullcase[!is.na(conspiracy_data_fullcase$weight_selfadmin),],
+                              group = "survey",
+                              sampling.weights = "weight_selfadmin",
+                              group.equal = c("loadings", "thresholds"), 
+                              estimator = "WLSMV", 
+                              ordered = c("A2", "A3", "A4", "A5"))
+
+# mean equivalence
+fit_mean_fullcase_cw <- cfa(model, 
+                            data = conspiracy_data_fullcase[!is.na(conspiracy_data_fullcase$weight_selfadmin),],
+                            group = "survey",
+                            sampling.weights = "weight_selfadmin",
+                            group.equal = c("loadings", "thresholds", "means"), 
+                            estimator = "WLSMV", 
+                            ordered = c("A2", "A3", "A4", "A5"))
+
+# residual equivalence
+fit_residual_fullcase_cw <- cfa(model, 
+                                data = conspiracy_data_fullcase[!is.na(conspiracy_data_fullcase$weight_selfadmin),],
+                                group = "survey",
+                                sampling.weights = "weight_selfadmin",
+                                group.equal = c("loadings", "thresholds",  "means", "residuals"), 
+                                estimator = "WLSMV", 
+                                ordered = c("A2", "A3", "A4", "A5"))
+
+# save fit indices
+tab_cw<- fit_extract(list(configural = fit_config_fullcase_cw,
+                          metric = fit_metric_fullcase_cw,
+                          scalar = fit_scalar_fullcase_cw,
+                          mean = fit_mean_fullcase_cw,
+                          residual = fit_residual_fullcase_cw)) %>%
+  mutate(condition = "CAWI adjusted Weights")
+
+# ----------------------------------------------------------------------------
+# 2. no weights (S2 in the paper)
 # configural equivalence
 fit_config_fullcase_uw <- cfa(model, 
                            data = conspiracy_data_fullcase,
@@ -214,7 +266,7 @@ tab_uw<- fit_extract(list(configural = fit_config_fullcase_uw,
 
 
 # ----------------------------------------------------------------------------
-# 2. with trimmed weights
+# 3. with trimmed weights
 fit_config_fullcase_trim <- cfa(model, 
                               data = conspiracy_data_fullcase,
                               group = "survey",
@@ -269,7 +321,7 @@ tab_trim <- fit_extract(list(configural = fit_config_fullcase_trim,
   #write_csv("./output/fit_table_fullcase_trimweight.csv")
 
 # ----------------------------------------------------------------------------
-# 3. with weights only adjusted to demographics  (S2 in the paper)
+# 4. with weights only adjusted to demographics  (S3 in the paper)
 fit_config_fullcase_demo <- cfa(model, 
                                 data = conspiracy_data_fullcase,
                                 group = "survey",
@@ -325,7 +377,7 @@ tab_demo<- fit_extract(list(configural = fit_config_fullcase_demo,
 
 
 # sensitivity checks for scaling ------------------------------------------------------
-# 1. Smaller middle category (S3 in the paper)
+# 1. Smaller middle category (S4 in the paper)
 SoepConsData_t1 <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
 
 # transform scale of Soep Data from 0-10 to 1-5
@@ -419,7 +471,7 @@ tab_t1 <- fit_extract(list(configural = fit_config_t1,
 
 
 # -------------------------------------------------------------------------------------
-# 2.: transform scale by using cumulative distributions (S4 in the paper)
+# 2.: transform scale by using cumulative distributions (S5 in the paper)
 SoepConsData_t2 <- read_dta("Z:/Eigene Dateien/Non_prob/Data/soepConsData.dta")
 
 # scale is adjusted seperatly for  each question
@@ -553,10 +605,11 @@ tab_t2 <- fit_extract(list(configural = fit_config_t2,
 # --------------------------------------------------------------------------------------------
 # collapse results
 fit_table <- bind_rows(tab_fullcase,
-                       tab_t1,
-                       tab_t2,
+                       tab_cw,
                        tab_uw,
                        tab_trim,
+                       tab_t1,
+                       tab_t2,
                        tab_demo) %>%
   relocate(condition, model)
 
