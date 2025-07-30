@@ -1,36 +1,36 @@
 condition,model,chisq,df,pvalue,cfi,rmsea
 Main model,configural,28.307,4,0,0.999,0.026
-Main model,metric,73.224,7,0,0.998,0.032
+Main model,metric,72.31,7,0,0.998,0.032
 Main model,scalar,151.039,18,0,0.997,0.028
 Main model,mean,407.906,19,0,0.99,0.047
-Main model,residual,407.906,19,0,0.99,0.047
+Main model,residual,514.84,23,0,0.988,0.048
 CAWI adjusted Weights,configural,4.873,4,0.301,1,0.009
-CAWI adjusted Weights,metric,42.58,7,0,0.997,0.043
+CAWI adjusted Weights,metric,43.934,7,0,0.997,0.044
 CAWI adjusted Weights,scalar,102.452,18,0,0.993,0.041
 CAWI adjusted Weights,mean,341.344,19,0,0.975,0.079
-CAWI adjusted Weights,residual,341.344,19,0,0.975,0.079
+CAWI adjusted Weights,residual,455.179,23,0,0.966,0.083
 Unweighted,configural,87.138,4,0,0.999,0.048
-Unweighted,metric,263.892,7,0,0.998,0.063
+Unweighted,metric,338.884,7,0,0.997,0.072
 Unweighted,scalar,859.708,18,0,0.993,0.071
 Unweighted,mean,1309.878,19,0,0.99,0.086
-Unweighted,residual,1309.878,19,0,0.99,0.086
+Unweighted,residual,2009.08,23,0,0.984,0.097
 Trimmed weights,configural,31.66,4,0,0.999,0.027
-Trimmed weights,metric,99.199,7,0,0.998,0.038
+Trimmed weights,metric,114.283,7,0,0.997,0.041
 Trimmed weights,scalar,321.771,18,0,0.993,0.043
 Trimmed weights,mean,676.097,19,0,0.984,0.061
-Trimmed weights,residual,676.097,19,0,0.984,0.061
+Trimmed weights,residual,930.162,23,0,0.979,0.066
 Middle category recoded,configural,26.916,4,0,0.999,0.025
-Middle category recoded,metric,74.513,7,0,0.998,0.032
+Middle category recoded,metric,72.345,7,0,0.998,0.032
 Middle category recoded,scalar,151.94,18,0,0.997,0.029
 Middle category recoded,mean,411.684,19,0,0.99,0.048
-Middle category recoded,residual,411.684,19,0,0.99,0.048
+Middle category recoded,residual,504.125,23,0,0.988,0.048
 Percentile-based transformation,configural,31.463,4,0,0.999,0.027
-Percentile-based transformation,metric,79.196,7,0,0.998,0.034
+Percentile-based transformation,metric,77.13,7,0,0.998,0.033
 Percentile-based transformation,scalar,214.628,18,0,0.995,0.035
 Percentile-based transformation,mean,215.832,19,0,0.995,0.034
-Percentile-based transformation,residual,215.832,19,0,0.995,0.034
+Percentile-based transformation,residual,341.956,23,0,0.992,0.039
 Demographic weights,configural,30.571,4,0,0.999,0.027
-Demographic weights,metric,73.937,7,0,0.998,0.032
+Demographic weights,metric,86.258,7,0,0.998,0.035
 Demographic weights,scalar,193.355,18,0,0.996,0.033
 Demographic weights,mean,379.615,19,0,0.991,0.046
-Demographic weights,residual,379.615,19,0,0.991,0.046
+Demographic weights,residual,567.348,23,0,0.987,0.051
